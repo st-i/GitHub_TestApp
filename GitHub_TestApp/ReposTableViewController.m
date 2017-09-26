@@ -17,9 +17,12 @@
 
 @property (strong, nonatomic) NSMutableArray *userRepositories;
 @property (strong, nonatomic) NSString *userRepositoriesAmount;
-@property (strong, nonatomic) NSString *username;
 @property (assign, nonatomic) BOOL requestError;
 @property (assign, nonatomic) BOOL noRepositories;
+@property (assign, nonatomic) BOOL noMoreRepositories;
+@property (assign, nonatomic) BOOL firstAppearance;
+@property (assign, nonatomic) NSInteger repoPage;
+
 
 @end
 
@@ -28,7 +31,10 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    self.firstAppearance = YES;
     self.noRepositories = NO;
+    self.noMoreRepositories = NO;
+    self.repoPage = 1;
     
     UIBarButtonItem *backButton = [[UIBarButtonItem alloc]initWithTitle:@"" style:UIBarButtonItemStylePlain target:self action:nil];
     [self.navigationItem setBackBarButtonItem:backButton];
@@ -39,16 +45,91 @@
     
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     
-    self.username = @"st-i";
-    self.navigationItem.title = self.username;
+    self.currentUsername = self.authorizedUser.name;
+    self.navigationItem.title = self.currentUsername;
     
-    [self loadRepositories];
+    [self loadRepositoriesOfAuthorizedUser];
 }
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
 }
+
+-(void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+}
+
+#pragma mark - API
+
+-(void)loadRepositoriesOfAuthorizedUser
+{
+    [[ServerManager sharedManager]
+     getReposOfAuthorizedUser:self.authorizedUser.name
+     onPage:self.repoPage
+     onSuccess:^(NSArray *repos) {
+         
+         [self.userRepositories addObjectsFromArray:repos];
+         self.requestError = NO;
+         self.firstAppearance = NO;
+         if (repos.count == 0) {
+             if (self.userRepositories.count != 0) {
+                 self.noMoreRepositories = YES;
+                 self.noRepositories = NO;
+             }else{
+                 self.noMoreRepositories = NO;
+                 self.noRepositories = YES;
+             }
+             self.repoPage = 1;
+             [self.tableView reloadData];
+         }else{
+             self.noMoreRepositories = NO;
+             self.noRepositories = NO;
+             self.repoPage++;
+             [self.tableView reloadData];
+         }
+     }
+     onFailure:^(NSError *error, NSInteger statusCode) {
+         self.requestError = YES;
+         self.firstAppearance = NO;
+         [self.tableView reloadData];
+     }];
+}
+
+- (void)loadRepositories
+{
+    [[ServerManager sharedManager]
+     getReposOfSomeUser:self.currentUsername
+     onPage:self.repoPage
+     onSuccess:^(NSArray *repos) {
+         [self.userRepositories addObjectsFromArray:repos];
+         self.firstAppearance = NO;
+         self.requestError = NO;
+         if (repos.count == 0) {
+             if (self.userRepositories.count != 0) {
+                 self.noMoreRepositories = YES;
+                 self.noRepositories = NO;
+             }else{
+                 self.noMoreRepositories = NO;
+                 self.noRepositories = YES;
+             }
+             self.repoPage = 1;
+             [self.tableView reloadData];
+         }else{
+             self.noMoreRepositories = NO;
+             self.noRepositories = NO;
+             self.repoPage++;
+             [self.tableView reloadData];
+         }
+     }
+     onFailure:^(NSError *error, NSInteger statusCode) {
+         self.requestError = YES;
+         self.firstAppearance = NO;
+         [self.tableView reloadData];
+     }];
+}
+
+#pragma mark - Actions
 
 -(void)showRepositoriesOfNewUser
 {
@@ -58,55 +139,85 @@
         textField.placeholder = @"Например, st-i";
     }];
     [alertContr addAction:[UIAlertAction actionWithTitle:@"Готово" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        
         NSString *text = alertContr.textFields.firstObject.text;
-        if (text.length > 0) {
-            
-            NSCharacterSet *invalidCharactersSet = [[NSCharacterSet characterSetWithCharactersInString:@"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-"] invertedSet];
-            NSRange wrongRange = [text rangeOfCharacterFromSet:invalidCharactersSet];
-            if (wrongRange.length < 1) {
-                self.username = text;
+        
+        if (text.length > 0 && ![text isEqualToString:self.currentUsername]) {
+            if ([text isEqualToString:self.authorizedUser.name]) {
+                self.repoPage = 1;
                 [self.userRepositories removeAllObjects];
-                self.navigationItem.title = self.username;
-                [self loadRepositories];
+                self.navigationItem.title = self.authorizedUser.name;
+                self.currentUsername = self.authorizedUser.name;
+                [self loadRepositoriesOfAuthorizedUser];
+
             }else{
                 
-                double delayInSeconds = 0.2;
-                dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
-                dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+                NSString *firstCharacter = [text substringToIndex:1];
+                NSString *lastCharacter = [text substringFromIndex:text.length - 1];
+
+                NSCharacterSet *invalidCharactersSet =
+                [[NSCharacterSet characterSetWithCharactersInString:
+                  @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-"]invertedSet];
+                
+                NSRange wrongRange = [text rangeOfCharacterFromSet:invalidCharactersSet];
+                if (wrongRange.location == NSNotFound){
+                    if ([text containsString:@"--"] ||
+                        [firstCharacter isEqualToString:@"-"] ||
+                        [lastCharacter isEqualToString:@"-"]) {
+                        
+                        double delayInSeconds = 0.3;
+                        dispatch_time_t popTime =
+                        dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+                        
+                        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+                            
+                            UIAlertController *alertContr =
+                            [UIAlertController
+                             alertControllerWithTitle:@"Ошибка"
+                             message:@"Некорректное имя пользователя"
+                             preferredStyle:UIAlertControllerStyleAlert];
+                            
+                            [alertContr addAction:
+                             [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                    handler:nil]];
+                            [self presentViewController:alertContr animated:YES completion:nil];
+                            
+                        });
+
+                    }else{
+                        self.repoPage = 1;
+                        [self.userRepositories removeAllObjects];
+                        self.currentUsername = text;
+                        self.navigationItem.title = self.currentUsername;
+                        [self loadRepositories];
+                    }
+                }else{
                     
-                    UIAlertController *alertContr = [UIAlertController alertControllerWithTitle:@"Ошибка" message:@"Некорректное имя пользователя" preferredStyle:UIAlertControllerStyleAlert];
-                    [alertContr addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-                    [self presentViewController:alertContr animated:YES completion:nil];
+                    double delayInSeconds = 0.3;
+                    dispatch_time_t popTime =
+                    dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
                     
-                     });
+                    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+                        
+                        UIAlertController *alertContr =
+                        [UIAlertController alertControllerWithTitle:@"Ошибка"
+                        message:@"Некорректное имя пользователя"
+                        preferredStyle:UIAlertControllerStyleAlert];
+                        
+                        [alertContr addAction:
+                         [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                handler:nil]];
+                        [self presentViewController:alertContr animated:YES completion:nil];
+                        
+                    });
+                }
             }
         }
     }]];
+    
     [self presentViewController:alertContr animated:YES completion:nil];
 }
 
-- (void)loadRepositories
-{
-    [[ServerManager sharedManager]
-     getReposOfUser:self.username
-     onSuccess:^(NSArray *repos) {
-         [self.userRepositories addObjectsFromArray:repos];
-         
-         self.requestError = NO;
-         if (repos.count == 0) {
-             self.noRepositories = YES;
-             [self.tableView reloadData];
-         }else{
-             self.noRepositories = NO;
-             [self.tableView reloadData];
-         }
-     }
-     onFailure:^(NSError *error, NSInteger statusCode) {
-         NSLog(@"error = %@, code = %ld", [error localizedDescription], statusCode);
-         self.requestError = YES;
-         [self.tableView reloadData];
-     }];
-}
 
 #pragma mark - UITableViewDataSource
 
@@ -120,14 +231,15 @@
     if (self.requestError || self.noRepositories) {
         return 1;
     }else{
-        return self.userRepositories.count;
+        return self.userRepositories.count + 1;
     }
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (self.requestError) {
-        static NSString *identifier = @"errorCell";
+    if (indexPath.row == self.userRepositories.count) {
+        
+        static NSString *identifier = @"loadOlderRepos";
         
         UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:identifier];
         
@@ -135,48 +247,50 @@
             cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
         }
         
-        UIView *lowerSeparator = [[UIView alloc] initWithFrame:CGRectMake(0, cell.contentView.frame.size.height - 0.5, tableView.window.bounds.size.width, 0.5)];
+        UIView *upperSeparator = [[UIView alloc] initWithFrame:CGRectMake(0, 0.5, tableView.window.bounds.size.width, 0.5)];
+        upperSeparator.backgroundColor = [UIColor lightGrayColor];
+        [cell.contentView addSubview:upperSeparator];
+        
+        UIView *lowerSeparator = [[UIView alloc] initWithFrame:CGRectMake(16, cell.contentView.frame.size.height - 0.5, tableView.window.bounds.size.width - 33, 0.5)];
         lowerSeparator.backgroundColor = [UIColor lightGrayColor];
         [cell.contentView addSubview:lowerSeparator];
         
-        NSString *errorCellText = @"Поиск не дал результатов";
+        NSString *lastCellText;
         
-        NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc] initWithString:errorCellText];
-        [attributedString addAttribute: NSFontAttributeName value:[UIFont systemFontOfSize:16 weight:UIFontWeightThin] range:[errorCellText rangeOfString:errorCellText]];
-        
-        cell.selectionStyle = UITableViewCellSelectionStyleNone;
-        cell.textLabel.textAlignment = NSTextAlignmentCenter;
-        cell.textLabel.attributedText = attributedString;
-        cell.textLabel.textColor = [UIColor lightGrayColor];
-        
-        return cell;
-        
-    }else if (self.noRepositories){
-        static NSString *identifier = @"noRepos";
-        
-        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:identifier];
-        
-        if (!cell) {
-            cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
+        if (self.noMoreRepositories) {
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            lastCellText = [NSString stringWithFormat:@"Amount of repositories: %ld",
+                            self.userRepositories.count];
+            cell.textLabel.textColor = [UIColor lightGrayColor];
+        }else if (self.requestError) {
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            lastCellText = @"Unfortunately, no results";
+            cell.textLabel.textColor = [UIColor lightGrayColor];
+        }else{
+            if (self.userRepositories.count == 0) {
+                cell.selectionStyle = UITableViewCellSelectionStyleNone;
+                if (self.firstAppearance) {
+                    lastCellText = @"Loading...";
+                }else{
+                    lastCellText = @"No repositories";
+                }
+                cell.textLabel.textColor = [UIColor lightGrayColor];
+            }else{
+                cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+                lastCellText = @"Older repositories";
+                cell.textLabel.textColor = [UIColor blueColor];
+            }
         }
         
-        UIView *lowerSeparator = [[UIView alloc] initWithFrame:CGRectMake(0, cell.contentView.frame.size.height - 0.5, tableView.window.bounds.size.width, 0.5)];
-        lowerSeparator.backgroundColor = [UIColor lightGrayColor];
-        [cell.contentView addSubview:lowerSeparator];
+        NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc] initWithString:lastCellText];
+        [attributedString addAttribute: NSFontAttributeName value:[UIFont systemFontOfSize:17 weight:UIFontWeightThin] range:[lastCellText rangeOfString:lastCellText]];
         
-        NSString *errorCellText = @"Нет репозиториев";
-        
-        NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc] initWithString:errorCellText];
-        [attributedString addAttribute: NSFontAttributeName value:[UIFont systemFontOfSize:16 weight:UIFontWeightThin] range:[errorCellText rangeOfString:errorCellText]];
-        
-        cell.selectionStyle = UITableViewCellSelectionStyleNone;
         cell.textLabel.textAlignment = NSTextAlignmentCenter;
         cell.textLabel.attributedText = attributedString;
-        cell.textLabel.textColor = [UIColor lightGrayColor];
         
         return cell;
     }else{
-    
+
         static NSString *identifier = @"repoCell";
         
         RepoEntryCell *cell = [tableView dequeueReusableCellWithIdentifier:identifier];
@@ -233,22 +347,29 @@
 {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     
-    if (self.userRepositories.count > 0) {
+    if (self.userRepositories.count > 0 && indexPath.row != self.userRepositories.count) {
         
         CommitsTableViewController *commitsTVC = [[CommitsTableViewController alloc]init];
         Repository *selectedRepository = [self.userRepositories objectAtIndex:indexPath.row];
         commitsTVC.currentRepository = selectedRepository;
         [self.navigationController pushViewController:commitsTVC animated:YES];
+    }else if (indexPath.row == self.userRepositories.count && !self.noMoreRepositories && self.userRepositories.count != 0) {
+        if ([self.currentUsername isEqualToString:self.authorizedUser.name]) {
+            [self loadRepositoriesOfAuthorizedUser];
+        }else{
+            [self loadRepositories];
+        }
     }
 }
 
 -(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (self.requestError || self.noRepositories) {
+    if (self.requestError || self.noRepositories || indexPath.row == self.userRepositories.count) {
         return 44.f;
     }else{
 
     if (self.userRepositories.count > 0) {
+        
         NSArray *nib = [[NSBundle mainBundle] loadNibNamed:@"RepoEntryCell" owner:self options:nil];
         RepoEntryCell *cell = [nib objectAtIndex:0];
         
@@ -280,8 +401,9 @@
         }else{
             return CGRectGetHeight(rect) + 176.f;
         }
+        
     }else{
-        return 344.f;
+        return 44.f;
     }
     }
 }

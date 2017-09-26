@@ -7,8 +7,11 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "User.h"
 
 @interface ReposTableViewController : UITableViewController
 
+@property (strong, nonatomic) NSString *currentUsername;
+@property (strong, nonatomic) User *authorizedUser;
 
 @end

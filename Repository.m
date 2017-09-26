@@ -21,7 +21,7 @@
         if ([loginObject isKindOfClass:[NSString class]]) {
             self.ownerName = [NSString stringWithFormat:@"%@", loginObject];
         }else{
-            self.ownerName = @"Автор не указан";
+            self.ownerName = @"No author";
         }
         
         NSString *photoURL = [ownerDictionary objectForKey:@"avatar_url"];
@@ -29,7 +29,8 @@
             self.ownerPhotoURL = [NSURL URLWithString:photoURL];
         }
         
-        //Возвращались некорректные данные относительно Watchers. Вместо этого показывается количество звезд.
+        //Возвращались некорректные данные относительно Watchers.
+        //Вместо этого показывается количество звезд.
         NSNumber *stars = [responseObject objectForKey:@"stargazers_count"];
         CGFloat starsFloat = stars.floatValue;
         if (starsFloat > 99999 && starsFloat < 1000000) {
@@ -56,7 +57,7 @@
         
         NSObject *descriptionResponse = [responseObject objectForKey:@"description"];
         if ([descriptionResponse isKindOfClass:[NSNull class]]) {
-            self.repoDescription = @"Описание отсутствует.";
+            self.repoDescription = @"No description.";
         }else{
             self.repoDescription = [NSString stringWithFormat:@"%@", descriptionResponse];
         }
@@ -72,7 +73,7 @@
         if ([languageObject isKindOfClass:[NSString class]]) {
             self.language = [NSString stringWithFormat:@"%@", languageObject];
         }else{
-            self.language = @"Нет информации";
+            self.language = @"No information";
         }
         
         NSString *ISODate = [responseObject objectForKey:@"pushed_at"];

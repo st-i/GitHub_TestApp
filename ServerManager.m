@@ -10,11 +10,13 @@
 #import "AFNetworking.h"
 #import "Repository.h"
 #import "Commit.h"
+#import <UIKit/UIKit.h>
 
 @interface ServerManager ()
 
-@property (strong, nonatomic) AFHTTPSessionManager *sessionManager;
-
+@property (strong, nonatomic) AFHTTPSessionManager *originalSessionManager;
+@property (strong, nonatomic) AFHTTPSessionManager *authSessionManager;
+@property (strong, nonatomic) AccessToken *accessToken;
 
 @end
 
@@ -38,25 +40,111 @@
     self = [super init];
     if (self) {
         
-        NSURL* url = [NSURL URLWithString:@"https://api.github.com"];
+        NSURL* originalUrl = [NSURL URLWithString:@"https://api.github.com/"];
+        self.originalSessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:originalUrl];
         
-        self.sessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:url];
-    }
+        
+        NSURL* authUrl = [NSURL URLWithString:@"https://github.com/login/oauth/"];
+        self.authSessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:authUrl];
+        self.authSessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
+        [self.authSessionManager.requestSerializer setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+}
     return self;
 }
 
--(void)getReposOfUser:(NSString *)username
-            onSuccess:(void (^)(NSArray *))success
-            onFailure:(void (^)(NSError *, NSInteger))failure
+-(void)authorizeUserWithCode:(NSString *)responseCode
+                     andState:(NSString *)state
+                    onSuccess:(void (^)(AccessToken *))success
+                    onFailure:(void (^)(NSError *))failure
 {
-    NSString *requestString = [NSString stringWithFormat:@"/users/%@/repos", username];
+    NSDictionary *parameters =
+    [NSDictionary dictionaryWithObjectsAndKeys:
+     @"059d85c41579fffa15d6", @"client_id",
+     @"441bda68cb9aeac8561a0ba94f88d158a6c554c4", @"client_secret",
+     responseCode, @"code",
+     state, @"state", nil];
+    
+    [self.authSessionManager
+     POST:@"access_token"
+     parameters:parameters
+     progress:^(NSProgress * _Nonnull uploadProgress) {
+    }
+     success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+         self.accessToken = [[AccessToken alloc]initWithServerResponse:responseObject];
+         
+         if (success) {
+             success(self.accessToken);
+         }
+    }
+     failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+         
+        if (failure) {
+            failure(error);
+        }
+    }];
+}
+
+-(void) getReposOfAuthorizedUser:(NSString *)username
+                          onPage:(NSInteger) page
+                       onSuccess:(void (^)(NSArray *))success
+                       onFailure:(void (^)(NSError *, NSInteger))failure
+{
+    NSString *requestString = @"user/repos";
+    
+    NSString *repoPage = [NSString stringWithFormat:@"%ld", (long)page];
+    
+    NSDictionary* parameters =
+    [NSDictionary dictionaryWithObjectsAndKeys:
+     self.accessToken.token, @"access_token",
+     @"pushed", @"sort",
+     @"desc",   @"direction",
+     repoPage,  @"page",
+     @"10",      @"per_page", nil];
+    
+    [self.originalSessionManager
+     GET:requestString
+     parameters:parameters
+     progress:^(NSProgress * _Nonnull downloadProgress) {
+     }
+     success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+         
+         NSMutableArray *repos = [NSMutableArray array];
+         
+         for (NSDictionary *dictionary in responseObject) {
+             Repository *newRepository = [[Repository alloc]initWithServerResponse:dictionary];
+             [repos addObject:newRepository];
+         }
+         
+         if (success) {
+             success(repos);
+         }
+     }
+     failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+         
+         if (failure) {
+             failure(error, error.code);
+         }
+     }];
+    
+}
+
+-(void)getReposOfSomeUser:(NSString *)username
+                   onPage:(NSInteger) page
+                onSuccess:(void (^)(NSArray *))success
+                onFailure:(void (^)(NSError *, NSInteger))failure
+{
+    NSString *requestString = [NSString stringWithFormat:@"users/%@/repos", username];
+    
+    NSString *repoPage = [NSString stringWithFormat:@"%ld", (long)page];
     
     NSDictionary* parameters =
     [NSDictionary dictionaryWithObjectsAndKeys:
      @"pushed", @"sort",
-     @"desc",    @"direction", nil];
+     @"desc",   @"direction",
+     repoPage,  @"page",
+     @"10",     @"per_page", nil];
     
-    [self.sessionManager GET:requestString
+    [self.originalSessionManager GET:requestString
                   parameters:parameters
                     progress:^(NSProgress * _Nonnull downloadProgress) {
                     }
@@ -74,11 +162,9 @@
                          }
                      }
                      failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-                         NSLog(@"Error: %@. Status: %ld",
-                               error.localizedDescription, task.taskIdentifier);
                          
                          if (failure) {
-                             failure(error, task.taskIdentifier);
+                             failure(error, error.code);
                          }
                      }];
 }
@@ -90,14 +176,14 @@
                     onSuccess:(void (^)(NSArray *))success
                     onFailure:(void (^)(NSError *, NSInteger))failure
 {
-    NSString *requestString = [NSString stringWithFormat:@"/repos/%@/%@/commits", username, repositoryName];
+    NSString *requestString = [NSString stringWithFormat:@"repos/%@/%@/commits", username, repositoryName];
     
     NSDictionary* parameters =
     [NSDictionary dictionaryWithObjectsAndKeys:
      sinceDate, @"since",
      untilDate, @"until", nil];
     
-    [self.sessionManager GET:requestString
+    [self.originalSessionManager GET:requestString
                   parameters:parameters
                     progress:^(NSProgress * _Nonnull downloadProgress) {
                     }
@@ -117,11 +203,9 @@
                          }
                      }
                      failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-                         NSLog(@"Error: %@. Status: %ld",
-                               error.localizedDescription, task.taskIdentifier);
                          
                          if (failure) {
-                             failure(error, task.taskIdentifier);
+                             failure(error, error.code);
                          }
                      }];
 }

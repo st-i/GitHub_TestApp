@@ -40,7 +40,6 @@
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
 }
 
 -(void)loadRepositoryCommits
@@ -79,7 +78,6 @@
      until:requestUntilDate
      onSuccess:^(NSArray *commits) {
          [self.repositoryCommits addObjectsFromArray:commits];
-         
          if (commits.count == 0) {
              self.noMoreCommits = YES;
              [self.tableView reloadData];
@@ -102,7 +100,6 @@
          [self.tableView endUpdates];
      }
      onFailure:^(NSError *error, NSInteger statusCode) {
-         NSLog(@"error = %@, code = %ld", [error localizedDescription], statusCode);
      }];
     }
 }
@@ -126,7 +123,6 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    
     if (indexPath.section == 0) {
         static NSString *identifier = @"originalCell";
         
@@ -157,7 +153,7 @@
                 cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
             }
             
-            UIView *lowerSeparator = [[UIView alloc] initWithFrame:CGRectMake(0, cell.contentView.frame.size.height - 0.5, tableView.window.bounds.size.width, 0.5)];
+            UIView *lowerSeparator = [[UIView alloc] initWithFrame:CGRectMake(16, cell.contentView.frame.size.height - 0.5, tableView.window.bounds.size.width - 33, 0.5)];
             lowerSeparator.backgroundColor = [UIColor lightGrayColor];
             [cell.contentView addSubview:lowerSeparator];
             
@@ -197,7 +193,7 @@
             }
             
             if (cell.firstAppearance) {
-                UIView *lowerSeparator = [[UIView alloc] initWithFrame:CGRectMake(16, cell.contentView.frame.size.height - 0.5, self.view.frame.size.width - 33, 0.5)];
+                UIView *lowerSeparator = [[UIView alloc] initWithFrame:CGRectMake(0, cell.contentView.frame.size.height - 0.5, self.view.frame.size.width, 0.5)];
                 lowerSeparator.backgroundColor = [UIColor lightGrayColor];
                 [cell.contentView addSubview:lowerSeparator];
                 
@@ -281,7 +277,7 @@
             if (indexPath.row == self.repositoryCommits.count) {
                 return 44.f;
             }else{
-                return 85.f;
+                return 144.f;
             }
         }
     }

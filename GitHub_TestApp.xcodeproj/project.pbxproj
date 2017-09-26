@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5451CF051F7954F10011694A /* AccessToken.m in Sources */ = {isa = PBXBuildFile; fileRef = 5451CF041F7954F10011694A /* AccessToken.m */; };
+		5451CF081F7962620011694A /* User.m in Sources */ = {isa = PBXBuildFile; fileRef = 5451CF071F7962620011694A /* User.m */; };
 		547220201F753FA900946E44 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 5472201F1F753FA900946E44 /* main.m */; };
 		547220231F753FA900946E44 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 547220221F753FA900946E44 /* AppDelegate.m */; };
 		547220261F753FA900946E44 /* LoginViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 547220251F753FA900946E44 /* LoginViewController.m */; };
@@ -40,6 +42,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		5451CF031F7954F10011694A /* AccessToken.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AccessToken.h; sourceTree = "<group>"; };
+		5451CF041F7954F10011694A /* AccessToken.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AccessToken.m; sourceTree = "<group>"; };
+		5451CF061F7962620011694A /* User.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = User.h; sourceTree = "<group>"; };
+		5451CF071F7962620011694A /* User.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = User.m; sourceTree = "<group>"; };
 		5472201B1F753FA900946E44 /* GitHub_TestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GitHub_TestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5472201F1F753FA900946E44 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		547220211F753FA900946E44 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -135,7 +141,7 @@
 				547220221F753FA900946E44 /* AppDelegate.m */,
 				54E6ECB11F76720100C585BB /* ViewControllers */,
 				54E6ECB01F7671F100C585BB /* TableViewControllers */,
-				54E6ECAF1F7671C900C585BB /* Objects */,
+				54E6ECAF1F7671C900C585BB /* Models */,
 				54E6ECB21F76722100C585BB /* Cells */,
 				547220271F753FA900946E44 /* Main.storyboard */,
 				5472202A1F753FA900946E44 /* Assets.xcassets */,
@@ -211,17 +217,21 @@
 			path = "UIKit+AFNetworking";
 			sourceTree = "<group>";
 		};
-		54E6ECAF1F7671C900C585BB /* Objects */ = {
+		54E6ECAF1F7671C900C585BB /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				54E6ECA61F764B0700C585BB /* ServerManager.h */,
-				54E6ECA71F764B0700C585BB /* ServerManager.m */,
 				54E6ECAC1F7665B100C585BB /* Repository.h */,
 				54E6ECAD1F7665B100C585BB /* Repository.m */,
 				54E6ECBE1F76EC6900C585BB /* Commit.h */,
 				54E6ECBF1F76EC6900C585BB /* Commit.m */,
+				5451CF031F7954F10011694A /* AccessToken.h */,
+				5451CF041F7954F10011694A /* AccessToken.m */,
+				5451CF061F7962620011694A /* User.h */,
+				5451CF071F7962620011694A /* User.m */,
+				54E6ECA61F764B0700C585BB /* ServerManager.h */,
+				54E6ECA71F764B0700C585BB /* ServerManager.m */,
 			);
-			name = Objects;
+			name = Models;
 			sourceTree = "<group>";
 		};
 		54E6ECB01F7671F100C585BB /* TableViewControllers */ = {
@@ -333,6 +343,7 @@
 			files = (
 				547220651F75449B00946E44 /* UIProgressView+AFNetworking.m in Sources */,
 				5472205E1F75449B00946E44 /* AFURLSessionManager.m in Sources */,
+				5451CF081F7962620011694A /* User.m in Sources */,
 				547220671F75449B00946E44 /* UIWebView+AFNetworking.m in Sources */,
 				547220641F75449B00946E44 /* UIImageView+AFNetworking.m in Sources */,
 				547220261F753FA900946E44 /* LoginViewController.m in Sources */,
@@ -350,6 +361,7 @@
 				54E6ECAB1F765F1500C585BB /* ReposTableViewController.m in Sources */,
 				5472205C1F75449B00946E44 /* AFURLRequestSerialization.m in Sources */,
 				547220611F75449B00946E44 /* AFNetworkActivityIndicatorManager.m in Sources */,
+				5451CF051F7954F10011694A /* AccessToken.m in Sources */,
 				5472205D1F75449B00946E44 /* AFURLResponseSerialization.m in Sources */,
 				54E6ECB61F76726700C585BB /* RepoEntryCell.m in Sources */,
 				54E6ECC31F76FE5B00C585BB /* CommitsTableViewController.m in Sources */,

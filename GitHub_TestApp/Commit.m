@@ -72,7 +72,7 @@
             if ([nicknameObject isKindOfClass:[NSString class]]) {
                 self.commiterNickname = [NSString stringWithFormat:@"%@", nicknameObject];
             }else{
-                self.commiterNickname = @"Автор не указан";
+                self.commiterNickname = @"No author";
                 
             }
         }else{
@@ -89,7 +89,7 @@
         if ([shaObject isKindOfClass:[NSString class]]) {
             self.sha = [NSString stringWithFormat:@"%@", shaObject];
         }else{
-            self.sha = @"не указан";
+            self.sha = @"not specified";
         }
 
     }
